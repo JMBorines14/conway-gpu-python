@@ -24,8 +24,8 @@ def conway(VP_HEIGHT, VP_WIDTH, ITERATIONS, an_array):
   while dpg.is_dearpygui_running():
     for k in range(ITERATIONS):
       an_array = update_board(an_array)
-      for i in range(0, VP_HEIGHT - 16, 16):
-        for j in range(0, VP_WIDTH - 16, 16):
+      for i in range(0, VP_WIDTH - 16, 16):
+        for j in range(0, VP_HEIGHT - 16, 16):
           value = an_array[i//16, j//16]
           if value == 1:
             dpg.draw_rectangle((i, j), (i+16, j+16), fill = (255, 255, 255, 255), parent = "viewport_back")
@@ -44,10 +44,10 @@ def create_board(VP_HEIGHT, VP_WIDTH, ITERATIONS):
   dpg.add_viewport_drawlist(front=False, tag="viewport_back")
   dpg.show_viewport()
 
-  an_array = np.asmatrix([[random.randint(0, 1) for i in range(VP_WIDTH//16)] for i in range(VP_HEIGHT//16)])
+  an_array = np.asmatrix([[random.randint(0, 1) for i in range((VP_WIDTH - 16)//16)] for i in range((VP_HEIGHT - 16)//16)])
 
-  for i in range(0, VP_HEIGHT - 16, 16):
-    for j in range(0, VP_WIDTH - 16, 16):
+  for i in range(0, VP_WIDTH - 16, 16):
+    for j in range(0, VP_HEIGHT - 16, 16):
       value = an_array[i//16, j//16]
       if value == 1:
         dpg.draw_rectangle((i, j), (i+16, j+16), fill = (255, 255, 255, 255), parent = "viewport_back")
@@ -55,7 +55,6 @@ def create_board(VP_HEIGHT, VP_WIDTH, ITERATIONS):
         dpg.draw_rectangle((i, j), (i+16, j+16), fill = (0, 0, 0, 0), parent = "viewport_back")
   
   dpg.render_dearpygui_frame()
-  #dpg.start_dearpygui()
   conway(VP_HEIGHT, VP_WIDTH, ITERATIONS, an_array)
 
 parser = argparse.ArgumentParser(description = "Initialize board dimensions")
