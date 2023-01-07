@@ -1,28 +1,49 @@
 import dearpygui.dearpygui as dpg
 from numba import cuda
-import numpy as np, random, time
+import numpy as np, random, time, math
 import argparse
 
 @cuda.jit
-def update_board(an_array):
+def update_board(an_array, a_new_array):
   x, y = cuda.grid(2)
 
   active_neighbors = an_array[x-1, y-1] + an_array[x-1, y] + an_array[x-1, y+1] + an_array[x, y-1] + an_array[x, y+1] + an_array[x+1, y-1] + an_array[x+1, y] + an_array[x+1, y+1]
   
   if an_array[x, y] == 1:
     if active_neighbors < 2 or active_neighbors > 3:
-      an_array[x , y] = 0
+      a_new_array[x , y] = 0
   else:
     if active_neighbors == 3:
-      an_array[x, y] = 1
+      a_new_array[x, y] = 1
 
 def conway(VP_HEIGHT, VP_WIDTH, ITERATIONS, an_array):
   while dpg.is_dearpygui_running():
-    for k in range(ITERATIONS):
-      pass
-      time.sleep(0.5)
+    for _ in range(ITERATIONS):
+      gpu_old_array = cuda.to_device(an_array)
+      gpu_new_array = cuda.to_device(np.zeros([((VP_WIDTH - 16)//16), ((VP_HEIGHT - 16)//16)]))
+
+      threadsperblock = (32, 32) #fully utilize 1024 threads per block
+      blockspergrid_x = math.ceil(VP_WIDTH / threadsperblock[0])
+      blockspergrid_y = math.ceil(VP_HEIGHT / threadsperblock[1])
+      blockspergrid = (blockspergrid_x, blockspergrid_y)
+
+      update_board[blockspergrid, threadsperblock](gpu_old_array, gpu_new_array)
+      new_array = gpu_new_array.copy_to_host()
+
+      for i in range(0, VP_WIDTH - 16, 16):
+        for j in range(0, VP_HEIGHT - 16, 16):
+          value = new_array[i//16, j//16]
+          if value == 1:
+            dpg.draw_rectangle((i, j), (i+16, j+16), fill = (255, 255, 255, 255), parent = "viewport_back")
+          else:
+            dpg.draw_rectangle((i, j), (i+16, j+16), fill = (0, 0, 0, 0), parent = "viewport_back")
+  
+      dpg.render_dearpygui_frame()
       dpg.delete_item("viewport_back", children_only=True)
 
+    time.sleep(2)
+    break
+  
   dpg.destroy_context()
 
 def create_board(VP_HEIGHT, VP_WIDTH, ITERATIONS):
@@ -41,7 +62,7 @@ def create_board(VP_HEIGHT, VP_WIDTH, ITERATIONS):
         dpg.draw_rectangle((i, j), (i+16, j+16), fill = (0, 0, 0, 0), parent = "viewport_back")
   
   dpg.render_dearpygui_frame()
-  dpg.start_dearpygui()
+  conway(VP_HEIGHT, VP_WIDTH, ITERATIONS, an_array)
 
 parser = argparse.ArgumentParser(description = "Initialize board dimensions")
 parser.add_argument('--height', type = int, help = "specify height of the board, must be a multiple of 16", required = True)
