@@ -7,8 +7,8 @@ def update_board(an_array):
   a_new_array = np.zeros([an_array.shape[0], an_array.shape[1]])
   for i in range(an_array.shape[0]):
     for j in range(an_array.shape[1]):
-      active_neighbors = an_array[i-1, j-1] + an_array[i-1, j] + an_array[i-1, (j+1)%(an_array.shape[0])] 
-      + an_array[i, j-1] + an_array[i, (j+1)%(an_array.shape[0])] + an_array[(i+1)%(an_array.shape[0]), j-1] 
+      active_neighbors = an_array[i-1, j-1] + an_array[i-1, j] + an_array[i-1, (j+1)%(an_array.shape[1])] 
+      + an_array[i, j-1] + an_array[i, (j+1)%(an_array.shape[1])] + an_array[(i+1)%(an_array.shape[0]), j-1] 
       + an_array[(i+1)%(an_array.shape[0]), j] + an_array[(i+1)%(an_array.shape[0]), (j+1)%(an_array.shape[1])]
 
       if an_array[i, j] == 1:
