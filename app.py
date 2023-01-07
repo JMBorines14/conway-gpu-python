@@ -7,7 +7,9 @@ import argparse
 def update_board(an_array, a_new_array):
   x, y = cuda.grid(2)
 
-  active_neighbors = an_array[x-1, y-1] + an_array[x-1, y] + an_array[x-1, y+1] + an_array[x, y-1] + an_array[x, y+1] + an_array[x+1, y-1] + an_array[x+1, y] + an_array[x+1, y+1]
+  active_neighbors = an_array[x-1, y-1] + an_array[x-1, y] + an_array[x-1, (y+1)%an_array.shape[1]] 
+  + an_array[x, y-1] + an_array[x, (y+1)%an_array.shape[1]] + an_array[(x+1)%an_array.shape[0], y-1] 
+  + an_array[(x+1)%an_array.shape[0], y] + an_array[(x+1)%an_array.shape[0], (y+1)%an_array.shape[1]]
   
   if an_array[x, y] == 1:
     if active_neighbors < 2 or active_neighbors > 3:
@@ -20,7 +22,7 @@ def conway(VP_HEIGHT, VP_WIDTH, ITERATIONS, an_array):
   while dpg.is_dearpygui_running():
     for _ in range(ITERATIONS):
       gpu_old_array = cuda.to_device(an_array)
-      gpu_new_array = cuda.to_device(np.zeros([((VP_WIDTH - 16)//16), ((VP_HEIGHT - 16)//16)]))
+      gpu_new_array = cuda.to_device(np.zeros([((VP_WIDTH)//16), ((VP_HEIGHT)//16)]))
 
       threadsperblock = (32, 32) #fully utilize 1024 threads per block
       blockspergrid_x = math.ceil(VP_WIDTH / threadsperblock[0])
@@ -30,10 +32,10 @@ def conway(VP_HEIGHT, VP_WIDTH, ITERATIONS, an_array):
       update_board[blockspergrid, threadsperblock](gpu_old_array, gpu_new_array)
       new_array = gpu_new_array.copy_to_host()
 
-      for i in range(0, VP_WIDTH - 16, 16):
-        for j in range(0, VP_HEIGHT - 16, 16):
+      for i in range(0, VP_WIDTH, 16):
+        for j in range(0, VP_HEIGHT, 16):
           value = new_array[i//16, j//16]
-          if value == 1:
+          if value == 0:
             dpg.draw_rectangle((i, j), (i+16, j+16), fill = (255, 255, 255, 255), parent = "viewport_back")
           else:
             dpg.draw_rectangle((i, j), (i+16, j+16), fill = (0, 0, 0, 0), parent = "viewport_back")
@@ -51,12 +53,12 @@ def create_board(VP_HEIGHT, VP_WIDTH, ITERATIONS):
   dpg.add_viewport_drawlist(front=False, tag="viewport_back")
   dpg.show_viewport()
 
-  an_array = np.asmatrix([[random.randint(0, 1) for i in range((VP_WIDTH - 16)//16)] for i in range((VP_HEIGHT - 16)//16)])
+  an_array = np.asmatrix([[random.randint(0, 1) for _ in range((VP_WIDTH)//16)] for _ in range((VP_HEIGHT)//16)])
 
-  for i in range(0, VP_WIDTH - 16, 16):
-    for j in range(0, VP_HEIGHT - 16, 16):
+  for i in range(0, VP_WIDTH, 16):
+    for j in range(0, VP_HEIGHT, 16):
       value = an_array[i//16, j//16]
-      if value == 1:
+      if value == 0:
         dpg.draw_rectangle((i, j), (i+16, j+16), fill = (255, 255, 255, 255), parent = "viewport_back")
       else:
         dpg.draw_rectangle((i, j), (i+16, j+16), fill = (0, 0, 0, 0), parent = "viewport_back")
