@@ -19,33 +19,35 @@ def update_board(an_array, a_new_array):
       a_new_array[x, y] = 1
 
 def conway(VP_HEIGHT, VP_WIDTH, ITERATIONS, an_array):
+  time.sleep(0.5)
+  dpg.delete_item("viewport_back", children_only=True)
+
   while dpg.is_dearpygui_running():
     for _ in range(ITERATIONS):
       gpu_old_array = cuda.to_device(an_array)
       gpu_new_array = cuda.to_device(np.copy(an_array))
 
       threadsperblock = (32, 32) #fully utilize 1024 threads per block
-      blockspergrid_x = math.ceil(VP_WIDTH / threadsperblock[0])
-      blockspergrid_y = math.ceil(VP_HEIGHT / threadsperblock[1])
+      blockspergrid_x = math.ceil((VP_WIDTH//16) / threadsperblock[0])
+      blockspergrid_y = math.ceil((VP_HEIGHT//16) / threadsperblock[1])
       blockspergrid = (blockspergrid_x, blockspergrid_y)
 
       update_board[blockspergrid, threadsperblock](gpu_old_array, gpu_new_array)
-      new_array = gpu_new_array.copy_to_host()
+      an_array = gpu_new_array.copy_to_host()
 
       for i in range(0, VP_WIDTH, 16):
         for j in range(0, VP_HEIGHT, 16):
-          value = new_array[i//16, j//16]
+          value = an_array[i//16, j//16]
           if value == 0:
             dpg.draw_rectangle((i, j), (i+16, j+16), fill = (255, 255, 255, 255), parent = "viewport_back")
           else:
             dpg.draw_rectangle((i, j), (i+16, j+16), fill = (0, 0, 0, 0), parent = "viewport_back")
   
       dpg.render_dearpygui_frame()
+      time.sleep(0.5)
       dpg.delete_item("viewport_back", children_only=True)
 
-    time.sleep(2)
     break
-  
   dpg.destroy_context()
 
 def create_board(VP_HEIGHT, VP_WIDTH, ITERATIONS):
