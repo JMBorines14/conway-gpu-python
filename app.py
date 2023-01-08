@@ -7,9 +7,9 @@ import argparse
 def update_board(an_array, a_new_array):
   x, y = cuda.grid(2)
 
-  active_neighbors = an_array[x-1, y-1] + an_array[x-1, y] + an_array[x-1, (y+1)%an_array.shape[1]] 
-  + an_array[x, y-1] + an_array[x, (y+1)%an_array.shape[1]] + an_array[(x+1)%an_array.shape[0], y-1] 
-  + an_array[(x+1)%an_array.shape[0], y] + an_array[(x+1)%an_array.shape[0], (y+1)%an_array.shape[1]]
+  active_neighbors = an_array[x-1, y-1] + an_array[x-1, y] + an_array[x-1, (y+1)%(an_array.shape[1])] + \
+    an_array[x, y-1] + an_array[x, (y+1)%(an_array.shape[1])] + an_array[(x+1)%(an_array.shape[0]), y-1] + \
+    an_array[(x+1)%(an_array.shape[0]), y] + an_array[(x+1)%(an_array.shape[0]), (y+1)%(an_array.shape[1])]
   
   if an_array[x, y] == 1:
     if active_neighbors < 2 or active_neighbors > 3:
@@ -22,7 +22,7 @@ def conway(VP_HEIGHT, VP_WIDTH, ITERATIONS, an_array):
   while dpg.is_dearpygui_running():
     for _ in range(ITERATIONS):
       gpu_old_array = cuda.to_device(an_array)
-      gpu_new_array = cuda.to_device(np.zeros([((VP_WIDTH)//16), ((VP_HEIGHT)//16)]))
+      gpu_new_array = cuda.to_device(np.copy(an_array))
 
       threadsperblock = (32, 32) #fully utilize 1024 threads per block
       blockspergrid_x = math.ceil(VP_WIDTH / threadsperblock[0])
@@ -53,7 +53,7 @@ def create_board(VP_HEIGHT, VP_WIDTH, ITERATIONS):
   dpg.add_viewport_drawlist(front=False, tag="viewport_back")
   dpg.show_viewport()
 
-  an_array = np.asmatrix([[random.randint(0, 1) for _ in range((VP_WIDTH)//16)] for _ in range((VP_HEIGHT)//16)])
+  an_array = np.asmatrix([[random.randint(0, 1) for _ in range((VP_HEIGHT)//16)] for _ in range((VP_WIDTH)//16)])
 
   for i in range(0, VP_WIDTH, 16):
     for j in range(0, VP_HEIGHT, 16):
@@ -77,5 +77,5 @@ VP_HEIGHT = args["height"]
 ITERATIONS = args["iterations"]
 
 dpg.create_context()
-dpg.create_viewport(title='Custom Title', width=VP_WIDTH, height=VP_HEIGHT, resizable = False)
+dpg.create_viewport(title='Conway\'s Game of Life: GPU', width=VP_WIDTH, height=VP_HEIGHT, resizable = False)
 create_board(VP_HEIGHT, VP_WIDTH, ITERATIONS)
