@@ -84,7 +84,7 @@ PIXEL_DIM = (16, 16)
 
 if (not RUNTIME_FLAG):
   dpg.create_context()
-  dpg.create_viewport(title='Conway\'s Game of Life: GPU Naive', width=WIDTH*PIXEL_DIM[0], height=HEIGHT*PIXEL_DIM[1]+50, resizable = False)
+  dpg.create_viewport(title='Conway\'s Game of Life: GPU LUT', width=WIDTH*PIXEL_DIM[0], height=HEIGHT*PIXEL_DIM[1]+50, resizable = False)
 
 if (RUNTIME_FLAG):
   START_TIME = time.time()
