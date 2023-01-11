@@ -19,22 +19,23 @@ def update_board(an_array, a_new_array):
       a_new_array[x, y] = 1
 
 def conway(HEIGHT, WIDTH, ITERATIONS, an_array):
-  time.sleep(0.5)
-  dpg.delete_item("viewport_back", children_only=True)
+  if (not RUNTIME_FLAG):
+    time.sleep(0.5)
+    dpg.delete_item("viewport_back", children_only=True)
 
-  while dpg.is_dearpygui_running():
-    for _ in range(ITERATIONS):
-      gpu_old_array = cuda.to_device(an_array)
-      gpu_new_array = cuda.to_device(np.copy(an_array))
+  for _ in range(ITERATIONS):
+    gpu_old_array = cuda.to_device(an_array)
+    gpu_new_array = cuda.to_device(np.copy(an_array))
 
-      threadsperblock = (32, 32) #fully utilize 1024 threads per block
-      blockspergrid_x = math.ceil(WIDTH / threadsperblock[0])
-      blockspergrid_y = math.ceil(HEIGHT / threadsperblock[1])
-      blockspergrid = (blockspergrid_x, blockspergrid_y)
+    threadsperblock = (32, 32) #fully utilize 1024 threads per block
+    blockspergrid_x = math.ceil(WIDTH / threadsperblock[0])
+    blockspergrid_y = math.ceil(HEIGHT / threadsperblock[1])
+    blockspergrid = (blockspergrid_x, blockspergrid_y)
 
-      update_board[blockspergrid, threadsperblock](gpu_old_array, gpu_new_array)
-      an_array = gpu_new_array.copy_to_host()
+    update_board[blockspergrid, threadsperblock](gpu_old_array, gpu_new_array)
+    an_array = gpu_new_array.copy_to_host()
 
+    if (not RUNTIME_FLAG):
       for i in range(WIDTH):
         for j in range(HEIGHT):
           value = an_array[i, j]
@@ -42,30 +43,32 @@ def conway(HEIGHT, WIDTH, ITERATIONS, an_array):
             dpg.draw_rectangle((i * PIXEL_DIM[0], j * PIXEL_DIM[1]), ((i * PIXEL_DIM[0]) + PIXEL_DIM[0], (j * PIXEL_DIM[1]) + PIXEL_DIM[1]), fill = (255, 255, 255, 255), parent = "viewport_back")
           else:
             dpg.draw_rectangle((i * PIXEL_DIM[0], j * PIXEL_DIM[1]), ((i * PIXEL_DIM[0]) + PIXEL_DIM[0], (j * PIXEL_DIM[1]) + PIXEL_DIM[1]), fill = (0, 0, 0, 0), parent = "viewport_back")
-  
+
       dpg.render_dearpygui_frame()
       time.sleep(0.5)
       dpg.delete_item("viewport_back", children_only=True)
-
-    break
-  dpg.destroy_context()
+  
+  if (RUNTIME_FLAG):
+    END_TIME = time.time()
+    print('Execution time: ', END_TIME - START_TIME)
 
 def create_board(HEIGHT, WIDTH, ITERATIONS):
-  dpg.setup_dearpygui()
-  dpg.add_viewport_drawlist(front=False, tag="viewport_back")
-  dpg.show_viewport()
-
   an_array = np.asmatrix([[random.randint(0, 1) for _ in range(HEIGHT)] for _ in range(WIDTH)])
 
-  for i in range(WIDTH):
-    for j in range(HEIGHT):
-      value = an_array[i, j]
-      if value == 0:
-        dpg.draw_rectangle((i * PIXEL_DIM[0], j * PIXEL_DIM[1]), ((i * PIXEL_DIM[0]) + PIXEL_DIM[0], (j * PIXEL_DIM[1]) + PIXEL_DIM[1]), fill = (255, 255, 255, 255), parent = "viewport_back")
-      else:
-        dpg.draw_rectangle((i * PIXEL_DIM[0], j * PIXEL_DIM[1]), ((i * PIXEL_DIM[0]) + PIXEL_DIM[0], (j * PIXEL_DIM[1]) + PIXEL_DIM[1]), fill = (0, 0, 0, 0), parent = "viewport_back")
-  
-  dpg.render_dearpygui_frame()
+  if (not RUNTIME_FLAG):
+    dpg.setup_dearpygui()
+    dpg.add_viewport_drawlist(front=False, tag="viewport_back")
+    dpg.show_viewport()
+
+    for i in range(WIDTH):
+      for j in range(HEIGHT):
+        value = an_array[i, j]
+        if value == 0:
+          dpg.draw_rectangle((i * PIXEL_DIM[0], j * PIXEL_DIM[1]), ((i * PIXEL_DIM[0]) + PIXEL_DIM[0], (j * PIXEL_DIM[1]) + PIXEL_DIM[1]), fill = (255, 255, 255, 255), parent = "viewport_back")
+        else:
+          dpg.draw_rectangle((i * PIXEL_DIM[0], j * PIXEL_DIM[1]), ((i * PIXEL_DIM[0]) + PIXEL_DIM[0], (j * PIXEL_DIM[1]) + PIXEL_DIM[1]), fill = (0, 0, 0, 0), parent = "viewport_back")
+    
+    dpg.render_dearpygui_frame()
   conway(HEIGHT, WIDTH, ITERATIONS, an_array)
 
 parser = argparse.ArgumentParser(description = "Initialize board dimensions")
@@ -81,6 +84,11 @@ ITERATIONS = args["iterations"]
 RUNTIME_FLAG = args["runtime"]
 PIXEL_DIM = (16, 16)
 
-dpg.create_context()
-dpg.create_viewport(title='Conway\'s Game of Life: GPU Naive', width=WIDTH*PIXEL_DIM[0], height=HEIGHT*PIXEL_DIM[1]+50, resizable = False)
+if (not RUNTIME_FLAG):
+  dpg.create_context()
+  dpg.create_viewport(title='Conway\'s Game of Life: GPU Naive', width=WIDTH*PIXEL_DIM[0], height=HEIGHT*PIXEL_DIM[1]+50, resizable = False)
+
+if (RUNTIME_FLAG):
+  START_TIME = time.time()
+
 create_board(HEIGHT, WIDTH, ITERATIONS)
